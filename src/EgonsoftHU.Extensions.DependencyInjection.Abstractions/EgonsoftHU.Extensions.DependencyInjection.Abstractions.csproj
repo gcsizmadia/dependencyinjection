@@ -49,5 +49,6 @@ EgonsoftHU.Extensions.DependencyInjection.DefaultAssemblyRegistry</Summary>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EgonsoftHU.Extensions.Bcl" Version="3.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
   </ItemGroup>
 </Project>

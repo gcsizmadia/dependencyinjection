@@ -1,4 +1,4 @@
-﻿// Copyright © 2022-2024 Gabor Csizmadia
+﻿// Copyright © 2022-2026 Gabor Csizmadia
 // This code is licensed under MIT license (see LICENSE for details)
 
 using System;
@@ -12,55 +12,24 @@ using EgonsoftHU.Extensions.Bcl;
 using EgonsoftHU.Extensions.Bcl.Constants;
 using EgonsoftHU.Extensions.DependencyInjection.Logging;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace EgonsoftHU.Extensions.DependencyInjection
 {
     /// <summary>
     /// Default implementation of the <see cref="IAssemblyRegistry"/> interface.
     /// </summary>
-    public sealed class DefaultAssemblyRegistry : IAssemblyRegistry
+    public sealed partial class DefaultAssemblyRegistry : IAssemblyRegistry
     {
         private static readonly string[] separator = new[] { Strings.CommaSpaceSeparator };
 
-        private static readonly Logger Logger = Logger.GetLogger<DefaultAssemblyRegistry>();
-
         private readonly Dictionary<string, AssemblyRegistryEntry> assemblies;
 
-        private readonly IReadOnlyCollection<string> assemblyFileNamePrefixes;
+        private ILogger logger = NullLogger.Instance;
 
-        /// <summary>
-        /// Adds a delegate that will be used for logging. This may be called multiple times and the results will be additive.
-        /// </summary>
-        /// <param name="logAction">The log action.</param>
-        /// <param name="loggingLibrary">The logging library used in the <paramref name="logAction"/>. By default, <see cref="LoggingLibrary.Other"/>.</param>
-        public static void ConfigureLogging(Action<ILogEvent> logAction, LoggingLibrary? loggingLibrary = LoggingLibrary.Other)
+        internal DefaultAssemblyRegistry()
         {
-            logAction.ThrowIfNull();
-
-            Logger.Configure(logAction, loggingLibrary.GetValueOrDefault());
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DefaultAssemblyRegistry"/> class with the specified assembly file name prefixes.
-        /// </summary>
-        /// <param name="assemblyFileNamePrefixes">The prefixes of the assembly file names.</param>
-        [MemberNotNull(nameof(Current))]
-        public static IAssemblyRegistry Initialize(params string[] assemblyFileNamePrefixes)
-        {
-            Current = new DefaultAssemblyRegistry(assemblyFileNamePrefixes);
-
-            return Current;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DefaultAssemblyRegistry"/> class with the specified assembly file name prefixes.
-        /// </summary>
-        /// <param name="assemblyFileNamePrefixes">The prefixes of the assembly file names.</param>
-        private DefaultAssemblyRegistry(params string[] assemblyFileNamePrefixes)
-        {
-            assemblies = new Dictionary<string, AssemblyRegistryEntry>();
-
-            this.assemblyFileNamePrefixes = assemblyFileNamePrefixes.AsReadOnly();
-
             AppDomain
                 .CurrentDomain
                 .GetAssemblies()
@@ -83,7 +52,7 @@ namespace EgonsoftHU.Extensions.DependencyInjection
         /// <inheritdoc/>
         public IEnumerable<Assembly> GetAssemblies()
         {
-            Logger logger = Logger.Here();
+            using IDisposable? scope = logger.Here();
 
             Assembly[] relevantAssemblies =
                 assemblies
@@ -91,12 +60,11 @@ namespace EgonsoftHU.Extensions.DependencyInjection
                     .OrderBy(GetAssemblyFullName)
                     .ToArray();
 
-            logger.Log(LogMessageTemplate.RegisteredAssemblyCount, relevantAssemblies.Length);
+            Log.RegisteredAssemblyCount(logger, relevantAssemblies.Length);
 
             foreach (Assembly assembly in relevantAssemblies)
             {
-                logger.Log(LogMessageTemplate.AssemblyFullName, GetAssemblyFullName(assembly));
-                logger.Log(LogMessageTemplate.AssemblyLocation, assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown));
+                Log.Assembly(logger, GetAssemblyFullName(assembly), assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown));
             }
 
             return relevantAssemblies;
@@ -157,7 +125,7 @@ namespace EgonsoftHU.Extensions.DependencyInjection
 
         private Assembly? CurrentDomain_AssemblyResolve(object? sender, ResolveEventArgs args)
         {
-            Logger logger = Logger.Here();
+            using IDisposable? scope = logger.Here();
 
             string requestedAssemblyFullName = args.Name;
 
@@ -170,8 +138,7 @@ namespace EgonsoftHU.Extensions.DependencyInjection
 #endif
                     .First();
 
-            logger.Log(LogMessageTemplate.RequestedAssemblyName, requestedAssemblyName);
-            logger.Log(LogMessageTemplate.RequestedAssemblyFullName, requestedAssemblyFullName);
+            Log.RequestedAssembly(logger, requestedAssemblyName, requestedAssemblyFullName);
 
             Assembly? assembly = null;
 
@@ -189,11 +156,10 @@ namespace EgonsoftHU.Extensions.DependencyInjection
                 }
             }
 
-            logger.Log(LogMessageTemplate.ResolvedAssemblyFullName, GetAssemblyFullName(assembly));
-            logger.Log(LogMessageTemplate.ResolvedAssemblyLocation, assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown));
-
-            logger.Log(
-                LogMessageTemplate.ResolvedAssemblyCodeBase,
+            Log.ResolvedAssembly(
+                logger,
+                GetAssemblyFullName(assembly),
+                assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown),
                 assembly
 #if NETFRAMEWORK
                     .SafeGetCodeBase()
@@ -208,15 +174,14 @@ namespace EgonsoftHU.Extensions.DependencyInjection
 
         private void CurrentDomain_AssemblyLoad(object? sender, AssemblyLoadEventArgs args)
         {
-            Logger logger = Logger.Here();
+            using IDisposable? scope = logger.Here();
 
             Assembly assembly = args.LoadedAssembly;
 
-            logger.Log(LogMessageTemplate.LoadedAssemblyFullName, GetAssemblyFullName(assembly));
-            logger.Log(LogMessageTemplate.LoadedAssemblyLocation, assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown));
-
-            logger.Log(
-                LogMessageTemplate.LoadedAssemblyCodeBase,
+            Log.LoadedAssembly(
+                logger,
+                GetAssemblyFullName(assembly),
+                assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown),
                 assembly
 #if NETFRAMEWORK
                     .SafeGetCodeBase()
