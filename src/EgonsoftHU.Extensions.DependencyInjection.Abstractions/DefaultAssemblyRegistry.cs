@@ -22,9 +22,23 @@ namespace EgonsoftHU.Extensions.DependencyInjection
     /// </summary>
     public sealed partial class DefaultAssemblyRegistry : IAssemblyRegistry
     {
-        private static readonly string[] separator = new[] { Strings.CommaSpaceSeparator };
+        private static readonly string[] Separator =
+#if LANGVERSION12_0_OR_GREATER
+            [Strings.CommaSpaceSeparator]
+#else
+            new[] { Strings.CommaSpaceSeparator }
+#endif
+            ;
 
-        private readonly Dictionary<string, AssemblyRegistryEntry> assemblies;
+        private readonly Dictionary<string, AssemblyRegistryEntry> assemblies =
+#if LANGVERSION12_0_OR_GREATER
+            []
+#else
+            new()
+#endif
+            ;
+
+        private DefaultAssemblyRegistryOptions options = new();
 
         private ILogger logger = NullLogger.Instance;
 
@@ -45,9 +59,16 @@ namespace EgonsoftHU.Extensions.DependencyInjection
         }
 
         /// <summary>
-        /// Gets the current instance of the <see cref="DefaultAssemblyRegistry"/> class.
+        /// Resets and reconfigures the options and the logger.
         /// </summary>
-        public static IAssemblyRegistry? Current { get; private set; }
+        /// <param name="configureAction">The delegate that configures the options.</param>
+        internal void Configure(Action<DefaultAssemblyRegistryOptions> configureAction)
+        {
+            options = new();
+            configureAction?.Invoke(options);
+
+            logger = options.LoggerFactory.CreateLogger(GetType());
+        }
 
         /// <inheritdoc/>
         public IEnumerable<Assembly> GetAssemblies()
@@ -88,7 +109,7 @@ namespace EgonsoftHU.Extensions.DependencyInjection
         private bool IsRelevantAssembly(Assembly assembly)
         {
             return
-                assemblyFileNamePrefixes.Any(
+                options.AssemblyFileNamePrefixes.Any(
                     assemblyFileNamePrefix => Path.GetFileName(assembly.SafeGetLocation())?.StartsWith(assemblyFileNamePrefix) ?? false
                 );
         }
@@ -98,7 +119,8 @@ namespace EgonsoftHU.Extensions.DependencyInjection
             IEnumerable<Assembly> alreadyLoadedRelevantAssemblies = GetAssemblies();
 
             var assemblyFileNames =
-                assemblyFileNamePrefixes
+                options
+                    .AssemblyFileNamePrefixes
                     .SelectMany(
                         assemblyFileNamePrefix =>
                         Directory.GetFiles(
@@ -132,11 +154,11 @@ namespace EgonsoftHU.Extensions.DependencyInjection
             string requestedAssemblyName =
                 requestedAssemblyFullName
 #if NET5_0_OR_GREATER
-                    .Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Split(Separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
 #else
-                    .Split(separator, StringSplitOptions.RemoveEmptyEntries)
+                    .Split(Separator, StringSplitOptions.RemoveEmptyEntries)
 #endif
-                    .First();
+                    [0];
 
             Log.RequestedAssembly(logger, requestedAssemblyName, requestedAssemblyFullName);
 
@@ -204,6 +226,8 @@ namespace EgonsoftHU.Extensions.DependencyInjection
             return Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, $"{assemblyShortName}.dll", SearchOption.AllDirectories);
         }
 
+        [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+        [SuppressMessage("SonarQube", "S1481")]
         private static Assembly LoadAssembly(string assemblyFileName)
         {
             if (File.Exists(assemblyFileName))
