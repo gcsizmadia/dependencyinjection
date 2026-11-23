@@ -7,14 +7,14 @@ using System.Runtime.CompilerServices;
 
 using Microsoft.Extensions.Logging;
 
-namespace EgonsoftHU.Extensions.DependencyInjection.Logging
+namespace EgonsoftHU.Extensions.DependencyInjection.Internal
 {
     internal static class ILoggerExtensions
     {
         internal static IDisposable? Here(this ILogger logger, [CallerMemberName] string? callerMemberName = null)
         {
             return logger.BeginScope(
-                new Dictionary<string, object>()
+                new Dictionary<string, object?>()
                 {
                     ["SourceMember"] = callerMemberName ?? LogConstants.Unknown
                 }
