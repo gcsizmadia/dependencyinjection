@@ -18,13 +18,14 @@
 
 Commonly Used Types:
 EgonsoftHU.Extensions.DependencyInjection.IAssemblyRegistry
-EgonsoftHU.Extensions.DependencyInjection.DefaultAssemblyRegistry</Description>
+EgonsoftHU.Extensions.DependencyInjection.AssemblyRegistry
+    </Description>
     <Summary>Abstractions for dependency injection.
     
 Commonly Used Types:
 EgonsoftHU.Extensions.DependencyInjection.IAssemblyRegistry
-EgonsoftHU.Extensions.DependencyInjection.DefaultAssemblyRegistry</Summary>
-    <!--
+EgonsoftHU.Extensions.DependencyInjection.AssemblyRegistry
+    </Summary>
     <!--<Copyright></Copyright>-->
     <!--<PackageRequireLicenseAcceptance></PackageRequireLicenseAcceptance>-->
     <!--<PackageLicenseExpression></PackageLicenseExpression>-->

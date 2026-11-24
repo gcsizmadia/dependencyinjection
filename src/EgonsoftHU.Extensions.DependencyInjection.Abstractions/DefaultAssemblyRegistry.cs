@@ -9,28 +9,16 @@ using System.Linq;
 using System.Reflection;
 
 using EgonsoftHU.Extensions.Bcl;
-using EgonsoftHU.Extensions.Bcl.Constants;
-using EgonsoftHU.Extensions.DependencyInjection.Logging;
+using EgonsoftHU.Extensions.DependencyInjection.Internal;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EgonsoftHU.Extensions.DependencyInjection
 {
-    /// <summary>
-    /// Default implementation of the <see cref="IAssemblyRegistry"/> interface.
-    /// </summary>
-    public sealed partial class DefaultAssemblyRegistry : IAssemblyRegistry
+    internal sealed partial class DefaultAssemblyRegistry : IAssemblyRegistry
     {
-        private static readonly string[] Separator =
-#if LANGVERSION12_0_OR_GREATER
-            [Strings.CommaSpaceSeparator]
-#else
-            new[] { Strings.CommaSpaceSeparator }
-#endif
-            ;
-
-        private readonly Dictionary<string, AssemblyRegistryEntry> assemblies =
+        private readonly Dictionary<string, Assembly> assembliesByName =
 #if LANGVERSION12_0_OR_GREATER
             []
 #else
@@ -42,188 +30,124 @@ namespace EgonsoftHU.Extensions.DependencyInjection
 
         private ILogger logger = NullLogger.Instance;
 
-        internal DefaultAssemblyRegistry()
-        {
-            AppDomain
-                .CurrentDomain
-                .GetAssemblies()
-                .ToList()
-                .ForEach(RegisterAssembly);
-
-            RegisterAssembly(Assembly.GetEntryAssembly());
-
-            AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
-            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-
-            LoadAssemblies();
-        }
-
-        /// <summary>
-        /// Resets and reconfigures the options and the logger.
-        /// </summary>
-        /// <param name="configureAction">The delegate that configures the options.</param>
-        internal void Configure(Action<DefaultAssemblyRegistryOptions> configureAction)
-        {
-            options = new();
-            configureAction?.Invoke(options);
-
-            logger = options.LoggerFactory.CreateLogger(GetType());
-        }
+        private Dictionary<string, List<string>> relevantAssemblyLocationsByFileName =
+#if LANGVERSION12_0_OR_GREATER
+            []
+#else
+            new()
+#endif
+            ;
 
         /// <inheritdoc/>
         public IEnumerable<Assembly> GetAssemblies()
         {
             using IDisposable? scope = logger.Here();
 
-            Assembly[] relevantAssemblies =
-                assemblies
-                    .Select(kvp => kvp.Value.Assembly)
-                    .OrderBy(GetAssemblyFullName)
-                    .ToArray();
+            Log.RegisteredAssemblyCount(logger, assembliesByName.Count);
 
-            Log.RegisteredAssemblyCount(logger, relevantAssemblies.Length);
+            var assemblies = new List<Assembly>();
 
-            foreach (Assembly assembly in relevantAssemblies)
+            foreach (Assembly assembly in assembliesByName.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value))
             {
-                Log.Assembly(logger, GetAssemblyFullName(assembly), assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown));
+                Log.RegisteredAssembly(
+                    logger,
+                    assembly.GetName().FullName.DefaultIfNullOrWhiteSpace(LogConstants.Unknown),
+                    assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown)
+                );
+
+                assemblies.Add(assembly);
             }
 
-            return relevantAssemblies;
+            return assemblies;
         }
 
-        private void RegisterAssembly(Assembly? assembly)
+        internal void Configure(Action<DefaultAssemblyRegistryOptions> configureAction)
         {
-            if (assembly is null || !IsRelevantAssembly(assembly))
+            options = new();
+            configureAction?.Invoke(options);
+
+            logger = options.LoggerFactory.CreateLogger<DefaultAssemblyRegistry>();
+        }
+
+        internal void Initialize()
+        {
+            relevantAssemblyLocationsByFileName =
+                AssemblyFinder
+                    .Instance
+                    .FindAssemblies(options)
+                    .GroupBy(path => Path.GetFileName(path))
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Select(path => Path.GetFullPath(path).DefaultIfNullOrWhiteSpace(String.Empty)).ToList(),
+                        StringComparer.OrdinalIgnoreCase
+                    );
+
+            var assemblies =
+                new List<Assembly?>(AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    Assembly.GetEntryAssembly()
+                };
+
+            foreach (Assembly assembly in assemblies.OfType<Assembly>().Where(IsRelevantAssembly))
             {
-                return;
+                RegisterAssembly(assembly);
             }
 
-            var assemblyRegistryEntry = new AssemblyRegistryEntry(assembly);
+            LoadAssemblies();
+        }
 
-            if (!assemblies.TryGetValue(assemblyRegistryEntry.Name, out AssemblyRegistryEntry? _))
+        private void RegisterAssembly(Assembly assembly)
+        {
+            string assemblyName = assembly.GetName().Name.DefaultIfNullOrWhiteSpace(String.Empty);
+
+            if (!assembliesByName.TryGetValue(assemblyName, out Assembly? _))
             {
-                assemblies[assemblyRegistryEntry.Name] = assemblyRegistryEntry;
+                assembliesByName[assemblyName] = assembly;
             }
         }
 
         private bool IsRelevantAssembly(Assembly assembly)
         {
             return
-                options.AssemblyFileNamePrefixes.Any(
-                    assemblyFileNamePrefix => Path.GetFileName(assembly.SafeGetLocation())?.StartsWith(assemblyFileNamePrefix) ?? false
+                relevantAssemblyLocationsByFileName.ContainsKey(
+                    Path.GetFileName(assembly.SafeGetLocation())
+                    ??
+                    String.Empty
                 );
         }
 
         private void LoadAssemblies()
         {
-            IEnumerable<Assembly> alreadyLoadedRelevantAssemblies = GetAssemblies();
-
-            var assemblyFileNames =
-                options
-                    .AssemblyFileNamePrefixes
-                    .SelectMany(
-                        assemblyFileNamePrefix =>
-                        Directory.GetFiles(
-                            AppContext.BaseDirectory,
-                            $"{assemblyFileNamePrefix}.*.dll",
-                            SearchOption.AllDirectories
-                        )
-                    )
-                    .Where(
-                        assemblyFileName =>
-                        !alreadyLoadedRelevantAssemblies.Any(
-                            assembly =>
-                            String.Equals(
-                                Path.GetFileName(assemblyFileName),
-                                Path.GetFileName(assembly.SafeGetLocation()),
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                    )
-                    .ToList();
-
-            assemblyFileNames.ForEach(assemblyFileName => LoadAssembly(assemblyFileName));
-        }
-
-        private Assembly? CurrentDomain_AssemblyResolve(object? sender, ResolveEventArgs args)
-        {
             using IDisposable? scope = logger.Here();
 
-            string requestedAssemblyFullName = args.Name;
-
-            string requestedAssemblyName =
-                requestedAssemblyFullName
-#if NET5_0_OR_GREATER
-                    .Split(Separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-#else
-                    .Split(Separator, StringSplitOptions.RemoveEmptyEntries)
-#endif
-                    [0];
-
-            Log.RequestedAssembly(logger, requestedAssemblyName, requestedAssemblyFullName);
-
-            Assembly? assembly = null;
-
-            if (assemblies.TryGetValue(requestedAssemblyName, out AssemblyRegistryEntry? assemblyRegistryEntry))
+            foreach (KeyValuePair<string, List<string>> assemblyLocationsByFileName in relevantAssemblyLocationsByFileName)
             {
-                assembly = assemblyRegistryEntry.Assembly;
-            }
-            else
-            {
-                string[] assemblyFileNames = FindAssemblyFiles(requestedAssemblyName);
+                string fileName = assemblyLocationsByFileName.Key;
 
-                if (assemblyFileNames.Length != 0)
+                string possibleAssemblyName = Path.GetFileNameWithoutExtension(fileName) ?? String.Empty;
+
+                if (assembliesByName.ContainsKey(possibleAssemblyName))
                 {
-                    assembly = LoadAssembly(assemblyFileNames[0]);
+                    Log.AssemblyFoundByName(logger, possibleAssemblyName);
+                    continue;
                 }
+
+                List<string> locations = assemblyLocationsByFileName.Value;
+
+                var matchingLocations = locations.Intersect(assembliesByName.Values.Select(entry => entry.Location)).ToList();
+
+                if (matchingLocations.Count > 0)
+                {
+                    Log.AssemblyFoundByLocation(logger, matchingLocations[0]);
+                    continue;
+                }
+
+                string location = locations[0];
+
+                Log.LoadAssembly(logger, location);
+
+                RegisterAssembly(LoadAssembly(location));
             }
-
-            Log.ResolvedAssembly(
-                logger,
-                GetAssemblyFullName(assembly),
-                assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown),
-                assembly
-#if NETFRAMEWORK
-                    .SafeGetCodeBase()
-#else
-                    .SafeGetLocation()
-#endif
-                    .DefaultIfNullOrWhiteSpace(LogConstants.Unknown)
-            );
-
-            return assembly;
-        }
-
-        private void CurrentDomain_AssemblyLoad(object? sender, AssemblyLoadEventArgs args)
-        {
-            using IDisposable? scope = logger.Here();
-
-            Assembly assembly = args.LoadedAssembly;
-
-            Log.LoadedAssembly(
-                logger,
-                GetAssemblyFullName(assembly),
-                assembly.SafeGetLocation().DefaultIfNullOrWhiteSpace(LogConstants.Unknown),
-                assembly
-#if NETFRAMEWORK
-                    .SafeGetCodeBase()
-#else
-                    .SafeGetLocation()
-#endif
-                    .DefaultIfNullOrWhiteSpace(LogConstants.Unknown)
-            );
-
-            RegisterAssembly(assembly);
-        }
-
-        private static string GetAssemblyFullName(Assembly? assembly)
-        {
-            return assembly?.FullName ?? LogConstants.Unknown;
-        }
-
-        private static string[] FindAssemblyFiles(string assemblyShortName)
-        {
-            return Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, $"{assemblyShortName}.dll", SearchOption.AllDirectories);
         }
 
         [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
