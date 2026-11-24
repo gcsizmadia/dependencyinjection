@@ -42,13 +42,13 @@ EgonsoftHU.Extensions.DependencyInjection.AssemblyRegistry
     <!--<MinClientVersion></MinClientVersion>-->
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="EgonsoftHU.Extensions.Bcl" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
+    <PackageReference Include="EgonsoftHU.Extensions.Bcl" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
-    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="11.0.0" />
   </ItemGroup>
 </Project>
