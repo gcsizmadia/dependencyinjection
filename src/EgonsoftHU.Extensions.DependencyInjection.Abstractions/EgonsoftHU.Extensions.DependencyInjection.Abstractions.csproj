@@ -10,9 +10,9 @@
     <VersionSuffix>$([System.String]::Format('prerelease-{0:000}-{1:0000}', $([System.DateTime]::Now.DayOfYear), $([System.Math]::Floor($([System.DateTime]::Now.TimeOfDay.TotalMinutes)))))</VersionSuffix>
     -->
     <!--
-    <Authors></Authors>
-    <Owners></Owners>
     -->
+    <!--<Authors></Authors>-->
+    <!--<Owners></Owners>-->
     <Title>Egonsoft.HU DependencyInjection Extensions Abstractions</Title>
     <Description>Abstractions for dependency injection.
 
@@ -25,27 +25,22 @@ Commonly Used Types:
 EgonsoftHU.Extensions.DependencyInjection.IAssemblyRegistry
 EgonsoftHU.Extensions.DependencyInjection.DefaultAssemblyRegistry</Summary>
     <!--
-    <Copyright></Copyright>
-    <PackageRequireLicenseAcceptance></PackageRequireLicenseAcceptance>
-    <PackageLicenseExpression></PackageLicenseExpression>
-    -->
-    <PackageProjectUrl>https://github.com/gcsizmadia/EgonsoftHU.Extensions.DependencyInjection.Abstractions</PackageProjectUrl>
-    <!--
-    <PackageIcon></PackageIcon>
-    <PackageIconUrl></PackageIconUrl>
-    <PackageReadmeFile></PackageReadmeFile>
-    -->
+    <!--<Copyright></Copyright>-->
+    <!--<PackageRequireLicenseAcceptance></PackageRequireLicenseAcceptance>-->
+    <!--<PackageLicenseExpression></PackageLicenseExpression>-->
+    <PackageProjectUrl>https://github.com/gcsizmadia/dependencyinjection</PackageProjectUrl>
+    <!--<PackageIcon></PackageIcon>-->
+    <!--<PackageIconUrl></PackageIconUrl>-->
+    <!--<PackageReadmeFile></PackageReadmeFile>-->
     <PackageTags>$(PackageTags) extensions extension dependencyinjection di ioc assembly registry</PackageTags>
-    <PackageReleaseNotes>Please visit https://github.com/gcsizmadia/EgonsoftHU.Extensions.DependencyInjection.Abstractions/releases to view the release notes.</PackageReleaseNotes>
-    <RepositoryUrl>https://github.com/gcsizmadia/EgonsoftHU.Extensions.DependencyInjection.Abstractions.git</RepositoryUrl>
-    <!--
-    <RepositoryType></RepositoryType>
-    <RepositoryBranch></RepositoryBranch>
-    <RepositoryCommit></RepositoryCommit>
-    <PackageType></PackageType>
-    <DevelopmentDependency></DevelopmentDependency>
-    <MinClientVersion></MinClientVersion>
-    -->
+    <PackageReleaseNotes>Please visit https://github.com/gcsizmadia/dependencyinjection/releases to view the release notes.</PackageReleaseNotes>
+    <!--<RepositoryUrl></RepositoryUrl>-->
+    <!--<RepositoryType></RepositoryType>-->
+    <!--<RepositoryBranch></RepositoryBranch>-->
+    <!--<RepositoryCommit></RepositoryCommit>-->
+    <!--<PackageType></PackageType>-->
+    <!--<DevelopmentDependency></DevelopmentDependency>-->
+    <!--<MinClientVersion></MinClientVersion>-->
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EgonsoftHU.Extensions.Bcl" Version="3.0.1" />
