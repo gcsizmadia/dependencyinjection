@@ -5,11 +5,9 @@
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <PackageId>EgonsoftHU.Extensions.DependencyInjection.Abstractions</PackageId>
-    <VersionPrefix>3.0.0</VersionPrefix>
+    <VersionPrefix>10.0.0</VersionPrefix>
     <!--
     <VersionSuffix>$([System.String]::Format('prerelease-{0:000}-{1:0000}', $([System.DateTime]::Now.DayOfYear), $([System.Math]::Floor($([System.DateTime]::Now.TimeOfDay.TotalMinutes)))))</VersionSuffix>
-    -->
-    <!--
     -->
     <!--<Authors></Authors>-->
     <!--<Owners></Owners>-->
@@ -21,7 +19,7 @@ EgonsoftHU.Extensions.DependencyInjection.IAssemblyRegistry
 EgonsoftHU.Extensions.DependencyInjection.AssemblyRegistry
     </Description>
     <Summary>Abstractions for dependency injection.
-    
+
 Commonly Used Types:
 EgonsoftHU.Extensions.DependencyInjection.IAssemblyRegistry
 EgonsoftHU.Extensions.DependencyInjection.AssemblyRegistry
