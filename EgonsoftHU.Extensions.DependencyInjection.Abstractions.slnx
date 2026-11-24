@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/Build/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="src/app.manifest" />
+  </Folder>
+  <Folder Name="/Documents/">
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+    <File Path="RELEASES.md" />
+  </Folder>
+  <Project Path="src/EgonsoftHU.Extensions.DependencyInjection.Abstractions/EgonsoftHU.Extensions.DependencyInjection.Abstractions.csproj" />
+  <Project Path="tests/EgonsoftHU.Extensions.DependencyInjection.Abstractions.Tests/EgonsoftHU.Extensions.DependencyInjection.Abstractions.Tests.csproj" />
+</Solution>
