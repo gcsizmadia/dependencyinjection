@@ -43,8 +43,8 @@ EgonsoftHU.Extensions.DependencyInjection.DefaultAssemblyRegistry</Summary>
     <!--<MinClientVersion></MinClientVersion>-->
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="EgonsoftHU.Extensions.Bcl" Version="3.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+    <PackageReference Include="EgonsoftHU.Extensions.Bcl" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.15" />
